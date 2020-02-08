@@ -12,14 +12,14 @@ namespace Tests
     public class InternetConnectivity
     {
         private static HttpClient google_http_client = new HttpClient();
-        private static string google_host = "https://www.google.es";
-        private static bool has_internet_access = false;
+        private static readonly string google_host = "https://www.google.es";
+        private static bool? has_access = null;
 
         private static int counter_fast_ping = 5;
-        private static int fast_ping_frequency = 3000;
-        private static int slow_ping_frequency = 20000;
+        private static readonly int fast_interval = 3000;
+        private static readonly int slow_interval = 20000;
 
-        private static bool pause_slow_ping = false;
+        private static bool pause_slow = false;
 
         public static event EventHandler Lost;
         public static event EventHandler Restored;
@@ -33,8 +33,8 @@ namespace Tests
 
         private static void Connectivity_ConnectivityChanged(object sender, ConnectivityChangedEventArgs e)
         {
-            //We clear its value so we need to calculate it again...
-            has_internet_access = false;
+            //We need to start checks again..
+            has_access = null;
 
             //We do a quick internet check...
             StartFastCheck();
@@ -48,57 +48,56 @@ namespace Tests
 
         public static bool HasInternetAccess {
             get {
-
-                if (!HasNetworkAccess)
+                //Either it doesn't have network access or it hasn't been calculated yet...
+                if (!HasNetworkAccess || !has_access.HasValue)
                 {
                     return false;
                 }
 
-                return has_internet_access;
+                return has_access.Value;
             }
         }
 
         private static void StartFastCheck()
         {
+            //No network access, no need to continue
+            if (!HasNetworkAccess)
+            {
+                CompareNewToPreviousStatus(false, has_access);
+                return;
+            }
+
             Task.Factory.StartNew(async () =>
             {
-                pause_slow_ping = true;
-
                 try
                 {
-                    if (!has_internet_access)
+                    pause_slow = true;
+
+                    if (!has_access.HasValue || !has_access.Value)
                     {
                         //We need to check has_internet_access , just in case it was queried in the slow before disabling...
-                        while (!has_internet_access)
+                        while (!has_access.HasValue || !has_access.Value)
                         {
-                            if (HasNetworkAccess)
-                            {
-                                has_internet_access = await PingGoogle();
-                            }
-                            else
-                            {
-                                has_internet_access = false;
-                                break;
-                            }
+                            has_access = await PingGoogle();
 
                             //If we already have access, no need to continue or if we have reached the max.. we'll leave it to the slow ping...
-                            if (has_internet_access || counter_fast_ping > 5)
+                            if (has_access.Value || counter_fast_ping > 5)
                             {
                                 break;
                             }
 
-                            Thread.Sleep(fast_ping_frequency);
+                            Thread.Sleep(fast_interval);
 
-                            counter_fast_ping = counter_fast_ping + 1;
+                            counter_fast_ping++;
                         }
                     }
                 }
                 finally
                 {
-                    pause_slow_ping = false;
+                    pause_slow = false;
                     counter_fast_ping = 0;
 
-                    OnNotifyStatus(has_internet_access);
+                    CompareNewToPreviousStatus(has_access.HasValue ? has_access.Value : false, null);
                 }
             });
         }
@@ -109,60 +108,42 @@ namespace Tests
             {
                 while (true)
                 {
-                    if (!pause_slow_ping)
+                    if (!pause_slow)
                     {
                         if (HasNetworkAccess)
                         {
                             var result = await PingGoogle();
 
-                            CheckNotifyStatusRequired(result, has_internet_access);
+                            CompareNewToPreviousStatus(result, has_access);
                         }
                         else
                         {
-                            CheckNotifyStatusRequired(false, has_internet_access);
+                            CompareNewToPreviousStatus(false, has_access);
                         }
                     }
 
-                    Thread.Sleep(slow_ping_frequency);
+                    Thread.Sleep(slow_interval);
                 }
             });
         }
 
-        private static void OnNotifyStatus(bool newStatus)
+        private static void CompareNewToPreviousStatus(bool newStatus, bool? previousStatus)
         {
-            if(newStatus)
-            {
-                OnRestored();
-            }
-            else
-            {
-                OnLost();
-            }
-        }
+            //Used for comparisons
+            var internal_newstatus = newStatus;
 
+            //We set so HasInternetAccess returns correct value
+            has_access = newStatus;
 
-        private static void CheckNotifyStatusRequired(bool newStatus, bool previousStatus)
-        {
-            if(!newStatus && previousStatus)
+            if (!internal_newstatus && (!previousStatus.HasValue || previousStatus.Value))
             {
-                //We update before notifying
-                has_internet_access = newStatus;
-
                 //If we don't have a connection now, but previously we did...
                 OnLost();
             }
-            else if(newStatus && !previousStatus)
+            else if (internal_newstatus && (!previousStatus.HasValue || !previousStatus.Value))
             {
-                //We update before notifying
-                has_internet_access = newStatus;
-
                 //If we have a connection now, but previously we didn't...
                 OnRestored();
-            }
-            else
-            {
-                //Nothing to notify
-                has_internet_access = newStatus;
             }
         }
 

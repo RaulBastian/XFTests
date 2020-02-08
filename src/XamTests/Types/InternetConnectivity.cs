@@ -33,6 +33,8 @@ namespace Tests
 
         private static void Connectivity_ConnectivityChanged(object sender, ConnectivityChangedEventArgs e)
         {
+            Log.Information("Connection changed..");
+
             //We need to start checks again..
             has_access = null;
 
@@ -60,6 +62,8 @@ namespace Tests
 
         private static void StartFastCheck()
         {
+            Log.Debug("Enters StartFastCheck");
+
             //No network access, no need to continue
             if (!HasNetworkAccess)
             {
@@ -92,6 +96,10 @@ namespace Tests
                         }
                     }
                 }
+                catch(Exception ex)
+                {
+                    Log.Error("Exits StartFastCheck");
+                }
                 finally
                 {
                     pause_slow = false;
@@ -100,10 +108,14 @@ namespace Tests
                     CompareNewToPreviousStatus(has_access.HasValue ? has_access.Value : false, null);
                 }
             });
+
+            Log.Debug("Exits StartFastCheck");
         }
 
         private static void StartSlowCheck()
         {
+            Log.Debug("Enters StartSlowCheck");
+
             Task.Factory.StartNew(async () =>
             {
                 while (true)
@@ -113,6 +125,7 @@ namespace Tests
                         if (HasNetworkAccess)
                         {
                             var result = await PingGoogle();
+                            Log.Information("Pinged google: {0}",result);
 
                             CompareNewToPreviousStatus(result, has_access);
                         }
@@ -125,10 +138,15 @@ namespace Tests
                     Thread.Sleep(slow_interval);
                 }
             });
+
+            Log.Debug("Exits StartSlowCheck");
         }
 
         private static void CompareNewToPreviousStatus(bool newStatus, bool? previousStatus)
         {
+            Log.Debug("Enters CompareNewToPreviousStatus");
+            Log.Information("NewStatus: {0}, PreviousStatus: {1}",newStatus,previousStatus);
+
             //Used for comparisons
             var internal_newstatus = newStatus;
 
@@ -145,6 +163,8 @@ namespace Tests
                 //If we have a connection now, but previously we didn't...
                 OnRestored();
             }
+
+            Log.Debug("Exits CompareNewToPreviousStatus");
         }
 
         private static async Task<bool> PingGoogle()

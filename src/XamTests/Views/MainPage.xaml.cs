@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
+using XamTests.ViewModels;
 
 namespace XamTests.Views
 {
@@ -15,6 +16,14 @@ namespace XamTests.Views
         public MainPage()
         {
             InitializeComponent();
+        }
+
+        private void TabbedPage_CurrentPageChanged(object sender, EventArgs e)
+        {
+            if (this.CurrentPage is LogsPage l && l.BindingContext is LogsViewModel vm)
+            {
+                vm.Refresh();
+            }
         }
     }
 }

@@ -4,12 +4,22 @@
              xmlns:d="http://xamarin.com/schemas/2014/forms/design"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="clr-namespace:XamTests.Views"
+             xmlns:prism="http://prismlibrary.com"
+             CurrentPageChanged="TabbedPage_CurrentPageChanged"
              mc:Ignorable="d"
              x:Class="XamTests.Views.MainPage">
+    <TabbedPage.Behaviors>
+        <prism:EventToCommandBehavior EventName="CurrentPageChanged"
+                                      Command="{Binding CurrentPageChanged}"></prism:EventToCommandBehavior>
+    </TabbedPage.Behaviors>
 
     <TabbedPage.Children>
         <local:ConnectivityPage Title="Connectivity"></local:ConnectivityPage>
         <local:FoldersPage Title="Folders"></local:FoldersPage>
+        <local:LogsPage Title="Logs"></local:LogsPage>
+        <ContentPage Title="Main">
+            <Label Text="{Binding .,}"></Label>
+        </ContentPage>
     </TabbedPage.Children>
     
 </TabbedPage>

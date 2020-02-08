@@ -1,6 +1,9 @@
 ﻿using Prism.Ioc;
 using Prism.Unity;
+using Serilog;
 using System;
+using System.IO;
+using Xamarin.Essentials;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 using XamTests.ViewModels;
@@ -13,6 +16,18 @@ namespace XamTests
         public App()
         {
             InitializeComponent();
+
+            if(Directory.Exists(Path.Combine(FileSystem.CacheDirectory, "logs")))
+            {
+                Directory.Delete(Path.Combine(FileSystem.CacheDirectory, "logs"),true);
+            }
+
+            Log.Logger = new LoggerConfiguration()
+                 .WriteTo.File(path: Path.Combine(FileSystem.CacheDirectory, "logs", "log.txt"), rollingInterval: RollingInterval.Day)
+                 .CreateLogger();
+
+
+            Log.Information("Starting...");
         }
 
         protected override void OnStart()
@@ -32,6 +47,7 @@ namespace XamTests
             containerRegistry.RegisterForNavigation<MainPage,MainViewModel>();
             containerRegistry.RegisterForNavigation<ConnectivityPage, ConnectivityViewModel>();
             containerRegistry.RegisterForNavigation<FoldersPage, FoldersViewModel>();
+            containerRegistry.RegisterForNavigation<LogsPage, LogsViewModel>();
         }
 
         protected override void OnInitialized()

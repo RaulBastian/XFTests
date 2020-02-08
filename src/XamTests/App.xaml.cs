@@ -48,6 +48,11 @@ namespace XamTests
             containerRegistry.RegisterForNavigation<ConnectivityPage, ConnectivityViewModel>();
             containerRegistry.RegisterForNavigation<FoldersPage, FoldersViewModel>();
             containerRegistry.RegisterForNavigation<LogsPage, LogsViewModel>();
+
+            containerRegistry.Register<IService1, RepositoryService1>();
+            containerRegistry.Register<IService2, RepositoryService2>();
+
+            containerRegistry.RegisterForNavigation<DependencyInjectionTestPage,DependencyInjectionTestViewModel>();
         }
 
         protected override void OnInitialized()
